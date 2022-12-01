@@ -1,7 +1,7 @@
 
 # Advent of Code 2022
 
-Collection of my advent of code 2021 programs
+Collection of my advent of code 2022 programs
 
 ## Tech Stack
 
