@@ -1,5 +1,3 @@
-import Heap from "heap-js";
-
 console.time("Execution time");
 const input: Array<[Opponent, Player]> = require("fs")
   .readFileSync(require("path").resolve(__dirname, "input"), "utf-8")
