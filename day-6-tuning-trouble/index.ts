@@ -6,16 +6,16 @@ const input: string = require("fs")
 function findMarker(str: string, distinctChars: number): number {
   const slidingCharCount = new Map<string, number>();
   for (let end = 0; end < str.length; ++end) {
-    const start = end - distinctChars;
+    const start = end - distinctChars + 1;
 
     slidingCharCount.set(str[end], (slidingCharCount.get(str[end]) ?? 0) + 1);
-    if (end >= distinctChars) {
-      slidingCharCount.set(str[start], (slidingCharCount.get(str[start]) ?? 0) - 1);
+    if (start > 0) {
+      slidingCharCount.set(str[start - 1], (slidingCharCount.get(str[start - 1]) ?? 0) - 1);
     }
 
     if (
-      end >= distinctChars - 1 &&
-      hasDuplicatesInRange(str, end - distinctChars + 1, end, slidingCharCount)
+      start >= 0 &&
+      hasDuplicatesInRange(str, start, end, slidingCharCount)
     ) { 
       return end + 1;
     }
@@ -24,7 +24,9 @@ function findMarker(str: string, distinctChars: number): number {
 }
 function hasDuplicatesInRange(str: string, start: number, end: number, slidingCharCount: Map<string, number>): boolean {
   for (let i = start; i <= end; ++i) {
-    if ((slidingCharCount.get(str[i]) ?? 0) > 1) return false;
+    if ((slidingCharCount.get(str[i]) ?? 0) > 1) {
+      return false;
+    }
   }
   return true;
 }
