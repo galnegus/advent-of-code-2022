@@ -13,37 +13,25 @@ interface Directory {
   items: Record<string, Item>;
 }
 type Item = File | Directory;
-
 function isDirectory(item: Item): item is Directory {
   return item.hasOwnProperty("items");
 }
-function isRealItem(name: string): boolean {
-  return name !== "..";
-}
-function computeDirectorySize(directory: Directory): number {
-  if (directory.size !== null) return directory.size;
-  const size = Object.keys(directory.items)
-    .filter(isRealItem)
-    .reduce<number>((sum, name) => {
-      const item = directory.items[name];
-      if (isDirectory(item)) return sum + computeDirectorySize(item);
-      else return sum + item.size;
-    }, 0);
-  directory.size = size;
+
+function computeDirectorySizes(item: Item): number {
+  if (!isDirectory(item) || item.size !== null) return item.size ?? 0;
+  const size = Object.values(item.items)
+    .reduce<number>((sum, item) => sum + computeDirectorySizes(item), 0);
+  item.size = size;
   return size;
 }
 function findItems(
   directory: Directory,
   predicate: (item: Item) => boolean
 ): Array<Item> {
-  const realItems = Object.keys(directory.items)
-    .filter(isRealItem)
-    .map((name) => directory.items[name]);
-
-  const subDirectories = realItems.filter(isDirectory);
+  const items = Object.values(directory.items);
   return [
-    ...realItems.filter(predicate),
-    ...subDirectories
+    ...items.filter(predicate),
+    ...items.filter(isDirectory)
       .map((subDirectory) => findItems(subDirectory, predicate))
       .flat(),
   ];
@@ -53,42 +41,42 @@ const root: Directory = {
   items: {},
   size: null,
 };
-let cwdir: Directory = root;
+
+let cwdir: Array<Directory> = [root];
+const cwdirPeek = () => cwdir[cwdir.length - 1];
 for (const line of input) {
   const tokens = line.split(" ");
   if (tokens[0] === "$") {
     if (tokens[1] === "cd") {
       if (tokens[2] === "/") {
-        cwdir = root;
+        cwdir = [root];
+      } else if (tokens[2] === "..") {
+        cwdir.pop();
       } else {
-        const newDir = cwdir.items[tokens[2]];
-        if (!isDirectory(newDir)) {
-          throw new Error("Trying to access non-existant directory.");
-        }
-        cwdir = newDir;
+        const newDir = cwdirPeek().items[tokens[2]];
+        if (!isDirectory(newDir)) throw new Error("Trying to access non-existant directory.");
+        cwdir.push(newDir);
       }
     } else if (tokens[1] !== "ls") {
-      throw new Error(
-        `Something's wrong, expected "ls" or "cd". Input line: "${line}"`
-      );
+      throw new Error(`Something's wrong, expected "ls" or "cd". Input line: "${line}"`);
     }
   } else {
     const directoryItemName = tokens[1];
-    if (cwdir.items[directoryItemName] != null) continue;
+    if (cwdirPeek().items[directoryItemName] != null) continue;
     if (tokens[0] === "dir") {
-      cwdir.items[directoryItemName] = {
-        items: { [".."]: cwdir },
+      cwdirPeek().items[directoryItemName] = {
+        items: {},
         size: null,
       };
     } else {
-      cwdir.items[directoryItemName] = {
+      cwdirPeek().items[directoryItemName] = {
         size: Number.parseInt(tokens[0], 10),
       };
     }
   }
 }
 
-computeDirectorySize(root);
+computeDirectorySizes(root);
 
 console.log(
   "Part 1 answer:",
@@ -100,10 +88,7 @@ const requiredSpace = 30000000 - 70000000 + (root.size ?? 0);
 console.log(
   "Part 2 answer:",
   Math.min(
-    ...findItems(
-      root,
-      (item) => item.size !== null && item.size > requiredSpace
-    )
+    ...findItems(root, (item) => item.size !== null && item.size > requiredSpace)
       .filter(isDirectory)
       .map((item) => item.size ?? 0)
   )
