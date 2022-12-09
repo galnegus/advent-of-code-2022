@@ -47,7 +47,7 @@ function numberOfVisitedPositions(numberOfKnots: number): number {
         const currentKnot = knots[i];
         const yMoved = Math.abs(prevKnot[y] - currentKnot[y]) > 1;
         const xMoved = Math.abs(prevKnot[x] - currentKnot[x]) > 1;
-        if (!yMoved && !xMoved) continue;
+        if (!yMoved && !xMoved) break;
 
         dx = (!xMoved ? prevKnot[x] : prevKnot[x] - dx) - currentKnot[x];
         dy = (!yMoved ? prevKnot[y] : prevKnot[y] - dy) - currentKnot[y];
