@@ -2,11 +2,9 @@ import Heap from "heap-js";
 
 console.time("Execution time");
 
-interface Position {
+interface State {
   row: number;
   column: number;
-}
-interface State extends Position {
   steps: number;
 }
 
