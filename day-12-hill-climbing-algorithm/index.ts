@@ -2,7 +2,7 @@ import Heap from "heap-js";
 
 console.time("Execution time");
 
-interface State {
+interface Position {
   row: number;
   column: number;
   steps: number;
@@ -14,16 +14,16 @@ const input: string = require("fs").readFileSync(
 );
 const heightMap: Array<Array<string>> = input.split(/\r?\n/).map((line) => line.split(""));
 
-let startState: State | null = null;
-let lowestStates: Array<State> = [];
+let startingPosition: Position | null = null;
+let lowestPositions: Array<Position> = [];
 heightMap.forEach((row, rowIndex) =>
   row.forEach((height, columnIndex) => {
-    if (height === "S") startState = { row: rowIndex, column: columnIndex, steps: 0 };
+    if (height === "S") startingPosition = { row: rowIndex, column: columnIndex, steps: 0 };
     if (height === "S" || height === "a")
-      lowestStates.push({ row: rowIndex, column: columnIndex, steps: 0 });
+      lowestPositions.push({ row: rowIndex, column: columnIndex, steps: 0 });
   })
 );
-if (startState === null) throw new Error("Starting position wasn't found!");
+if (startingPosition === null) throw new Error("Starting position wasn't found!");
 
 const rows = heightMap.length;
 const columns = heightMap[0].length;
@@ -41,38 +41,38 @@ function positionHash(row: number, column: number): number {
   return row + offset + ((column + offset) << 16);
 }
 
-function numberOfSteps(startingStates: Array<State>): number {
-  const states = Heap.heapify<State>(startingStates, (a, b) => a.steps - b.steps);
+function numberOfSteps(initialPositions: Array<Position>): number {
+  const positions = Heap.heapify<Position>(initialPositions, (a, b) => a.steps - b.steps);
   const visited = new Set<number>();
 
-  const tryToMove = (fromState: State, row: number, column: number): void => {
+  const tryToMove = (from: Position, row: number, column: number): void => {
     const hash = positionHash(row, column);
-    if (!visited.has(hash) && canMove(fromState.row, fromState.column, row, column)) {
-      states.add({ row: row, column, steps: fromState.steps + 1 });
+    if (!visited.has(hash) && canMove(from.row, from.column, row, column)) {
+      positions.add({ row: row, column, steps: from.steps + 1 });
       visited.add(hash);
     }
   };
 
-  while (states.length > 0) {
-    const state = states.pop();
-    if (state === undefined) throw new Error("This shouldn't happen...");
-    const { row, column, steps } = state;
+  while (positions.length > 0) {
+    const position = positions.pop();
+    if (position === undefined) throw new Error("This shouldn't happen...");
+    const { row, column, steps } = position;
 
     if (heightMap[row][column] === "E") {
       return steps;
     }
 
-    if (row > 0) tryToMove(state, row - 1, column);
-    if (column > 0) tryToMove(state, row, column - 1);
-    if (row < rows - 1) tryToMove(state, row + 1, column);
-    if (column < columns - 1) tryToMove(state, row, column + 1);
+    if (row > 0) tryToMove(position, row - 1, column);
+    if (column > 0) tryToMove(position, row, column - 1);
+    if (row < rows - 1) tryToMove(position, row + 1, column);
+    if (column < columns - 1) tryToMove(position, row, column + 1);
   }
 
   return -1;
 }
 
-console.log("Part 1 answer:", numberOfSteps([startState]));
-console.log("Part 2 answer:", numberOfSteps(lowestStates));
+console.log("Part 1 answer:", numberOfSteps([startingPosition]));
+console.log("Part 2 answer:", numberOfSteps(lowestPositions));
 
 console.timeEnd("Execution time");
 export {};
