@@ -1,5 +1,3 @@
-import Heap from "heap-js";
-
 console.time("Execution time");
 
 interface Position {
@@ -42,19 +40,19 @@ function positionHash(row: number, column: number): number {
 }
 
 function numberOfSteps(initialPositions: Array<Position>): number {
-  const positions = Heap.heapify<Position>(initialPositions, (a, b) => a.steps - b.steps);
+  const positions = [...initialPositions];
   const visited = new Set<number>();
 
   const tryToMove = (from: Position, row: number, column: number): void => {
     const hash = positionHash(row, column);
     if (!visited.has(hash) && canMove(from.row, from.column, row, column)) {
-      positions.add({ row: row, column, steps: from.steps + 1 });
+      positions.push({ row: row, column, steps: from.steps + 1 });
       visited.add(hash);
     }
   };
 
   while (positions.length > 0) {
-    const position = positions.pop();
+    const position = positions.shift();
     if (position === undefined) throw new Error("This shouldn't happen...");
     const { row, column, steps } = position;
 
