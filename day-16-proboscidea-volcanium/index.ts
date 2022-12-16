@@ -1,13 +1,16 @@
 console.time("Execution time");
 
 /**
- * ~5 seconds at the moment...
+ * <1 second after finding inspiration on reddit 😅
+ * original version was like 20 seconds
  */
 
 interface Valve {
   name: string;
   flowRate: number;
   tunnelsLeadTo: Array<Valve>;
+  /** Only for non-zero valves */
+  bitMask?: number;
 }
 
 function isValve(valve: Valve | undefined): valve is Valve {
@@ -39,85 +42,79 @@ const valveNames = Array.from(valves.keys());
 const distances = new Map<string, Map<string, number>>(
   valveNames.map((outerName) => [
     outerName,
-    new Map(valveNames.map((innerName) => [innerName, -1])),
+    new Map(valveNames.map((innerName) => [innerName, Number.POSITIVE_INFINITY])),
   ])
 );
-
-type SearchNode = [valve: Valve, depth: number];
-function fillDistancesFor(name: string): void {
-  const visited = new Set<string>([name]);
-  const stack: Array<SearchNode> = [[valves.get(name)!, 0]];
-  while (stack.length > 0) {
-    const [valve, depth] = stack.shift()!;
-    distances.get(name)!.set(valve.name, depth);
-    for (const neighboringValve of valve.tunnelsLeadTo) {
-      if (visited.has(neighboringValve.name)) continue;
-      visited.add(neighboringValve.name);
-      stack.push([neighboringValve, depth + 1]);
+for (const valve of valves.values()) {
+  for (const neighbor of valve.tunnelsLeadTo) {
+    distances.get(valve.name)!.set(neighbor.name, 1);
+  }
+  distances.get(valve.name)!.set(valve.name, 0);
+}
+for (const k of valveNames) {
+  for (const i of valveNames) {
+    for (const j of valveNames) {
+      const testDist = distances.get(i)!.get(k)! + distances.get(k)!.get(j)!;
+      if (distances.get(i)!.get(j)! > testDist) {
+        distances.get(i)!.set(j, testDist);
+      }
     }
   }
 }
-valveNames.forEach(fillDistancesFor);
-
 const nonZeroValves = Array.from(valves.values()).filter((valve) => valve.flowRate > 0);
+for (let i = 0; i < nonZeroValves.length; ++i) {
+  nonZeroValves[i].bitMask = 1 << i;
+}
 
-function findOptimalPressure(
+function explorePressureSpace(
   pressure: number,
   flowRate: number,
-  minutes: number,
-  atValve: Valve,
-  valves: Array<Valve>
-): number {
-  if (minutes >= 30) return pressure;
-  const valvesToCheck = valves.filter(
-    (toValve) => (minutes + distances.get(atValve.name)!.get(toValve.name)! < 30)!
+  minutesLeft: number,
+  currentValve: Valve,
+  valvesLeft: Array<Valve>,
+  bitmask: number,
+  pressurePaths: Array<number>
+): void {
+  const valvesToSearch = valvesLeft.filter(
+    (valveToSearch) =>
+      (minutesLeft - distances.get(currentValve.name)!.get(valveToSearch.name)! > 0)!
   );
-
-  if (valvesToCheck.length === 0) return pressure + (30 - minutes + 1) * flowRate;
-
-  return Math.max(
-    ...valvesToCheck.map((valveToCheck) => {
-      const distance = distances.get(atValve.name)!.get(valveToCheck.name)!;
-      return findOptimalPressure(
-        pressure + (distance + 1) * flowRate,
-        flowRate + valveToCheck.flowRate,
-        minutes + distance + 1,
-        valveToCheck,
-        valvesToCheck.filter((valve) => valve !== valveToCheck)
-      );
-    })
-  );
-}
-
-const aa = valves.get("AA")!;
-console.log("Part 1 answer:", findOptimalPressure(0, 0, 1, aa, nonZeroValves));
-
-let max = 0;
-for (let i = 1; i < 2 ** nonZeroValves.length - 1; ++i) {
-  const popcount = bitCount(i);
-  // NAIVE ASSUMPTION: Both arrays should be roughly the same size ;) probably not correct but I got the right answer still, AND it's 5 times faster!
-  if (Math.abs(popcount - nonZeroValves.length / 2) > 1) continue;
-  const a: Array<Valve> = [];
-  const b: Array<Valve> = [];
-  for (let j = 0; j < nonZeroValves.length; ++j) {
-    if (((1 << j) & i) === 0) {
-      a.push(nonZeroValves[j]);
-    } else {
-      b.push(nonZeroValves[j]);
-    }
+  pressurePaths[bitmask] = Math.max(pressure + minutesLeft * flowRate, pressurePaths[bitmask] ?? 0);
+  if (valvesToSearch.length === 0) {
+    return;
   }
-  const result = findOptimalPressure(0, 0, 5, aa, a) + findOptimalPressure(0, 0, 5, aa, b);
-  if (result > max) max = result;
+  for (const valveToSearch of valvesToSearch) {
+    const distance = distances.get(currentValve.name)!.get(valveToSearch.name)!;
+    explorePressureSpace(
+      pressure + (distance + 1) * flowRate,
+      flowRate + valveToSearch.flowRate,
+      minutesLeft - distance - 1,
+      valveToSearch,
+      valvesToSearch.filter((valve) => valve !== valveToSearch),
+      bitmask | valveToSearch.bitMask!,
+      pressurePaths
+    );
+  }
+}
+/** Pressure paths is an array where the index is the bitmask of the valves,
+ * and the value is the best pressure found with those (masked) valves open */
+function findPressurePaths(minutes: number): Array<number> {
+  const pressurePaths: Array<number> = new Array(2 ** nonZeroValves.length).fill(0);
+  explorePressureSpace(0, 0, minutes, valves.get("AA")!, nonZeroValves, 0, pressurePaths);
+  return pressurePaths;
 }
 
+console.log("Part 1 answer:", Math.max(...findPressurePaths(30)));
+
+const twoPlayerPaths = findPressurePaths(26);
+let max = 0;
+for (let human = 0; human < 2 ** nonZeroValves.length; ++human) {
+  for (let elephant = 0; elephant < 2 ** nonZeroValves.length; ++elephant) {
+    if (elephant & human) continue;
+    max = Math.max(max, twoPlayerPaths[human] + twoPlayerPaths[elephant]);
+  }
+}
 console.log("Part 2 answer:", max);
-
-// https://stackoverflow.com/a/43122214
-function bitCount(n: number): number {
-  n = n - ((n >> 1) & 0x55555555);
-  n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
-  return (((n + (n >> 4)) & 0xf0f0f0f) * 0x1010101) >> 24;
-}
 
 console.timeEnd("Execution time");
 export {};
