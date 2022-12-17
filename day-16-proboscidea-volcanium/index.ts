@@ -45,22 +45,22 @@ const distances = new Map<string, Map<string, number>>(
     new Map(valveNames.map((innerName) => [innerName, Number.POSITIVE_INFINITY])),
   ])
 );
-for (const valve of valves.values()) {
-  for (const neighbor of valve.tunnelsLeadTo) {
-    distances.get(valve.name)!.set(neighbor.name, 1);
-  }
-  distances.get(valve.name)!.set(valve.name, 0);
-}
-for (const k of valveNames) {
-  for (const i of valveNames) {
-    for (const j of valveNames) {
-      const testDist = distances.get(i)!.get(k)! + distances.get(k)!.get(j)!;
-      if (distances.get(i)!.get(j)! > testDist) {
-        distances.get(i)!.set(j, testDist);
-      }
+type SearchNode = [valve: Valve, depth: number];
+function fillDistancesFor(name: string): void {
+  const visited = new Set<string>([name]);
+  const stack: Array<SearchNode> = [[valves.get(name)!, 0]];
+  while (stack.length > 0) {
+    const [valve, depth] = stack.shift()!;
+    distances.get(name)!.set(valve.name, depth);
+    for (const neighboringValve of valve.tunnelsLeadTo) {
+      if (visited.has(neighboringValve.name)) continue;
+      visited.add(neighboringValve.name);
+      stack.push([neighboringValve, depth + 1]);
     }
   }
 }
+valveNames.forEach(fillDistancesFor);
+
 const nonZeroValves = Array.from(valves.values()).filter((valve) => valve.flowRate > 0);
 for (let i = 0; i < nonZeroValves.length; ++i) {
   nonZeroValves[i].bitMask = 1 << i;
