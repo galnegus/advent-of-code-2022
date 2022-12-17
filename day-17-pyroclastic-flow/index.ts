@@ -59,15 +59,7 @@ function collides(x: number, y: number): boolean {
   return x < 0 || x > 6 || y < 0 || board[x][y];
 }
 function canMoveTo(rock: Rock, x: number, y: number): boolean {
-  for (const rockPiece of rock) {
-    if (collides(x + rockPiece[0], y + rockPiece[1])) return false;
-  }
-  return true;
-}
-function addToBoard(rock: Rock, x: number, y: number): void {
-  for (const rockPiece of rock) {
-    board[x + rockPiece[0]][y + rockPiece[1]] = true;
-  }
+  return rock.every((rockPiece) => !collides(x + rockPiece[0], y + rockPiece[1]));
 }
 
 /**
@@ -97,7 +89,9 @@ for (let rockNo = 0; rockNo < boardRows; ++rockNo) {
     if (canMoveTo(rock, rockX, rockY - 1)) {
       rockY -= 1;
     } else {
-      addToBoard(rock, rockX, rockY);
+      for (const rockPiece of rock) {
+        board[rockX + rockPiece[0]][rockY + rockPiece[1]] = true;
+      }
       floor = Math.max(rockY + rockHeights[rockNo % rocks.length] - 1, floor);
       break;
     }
@@ -108,7 +102,7 @@ let cycleLength = 0;
 // cycle length must be divisble with 5 (the number of rock types), set test accordingly
 for (let test = rocks.length; test < boardRows; test += rocks.length) {
   let cycleFound = true;
-  for (let i = test * 3; i < jetsUsedAt.length; i += test) {
+  for (let i = test * 3; i <= test * 5; i += test) {
     if (jetsUsedAt[i] - jetsUsedAt[i - test] !== jetsUsedAt[i - test] - jetsUsedAt[i - test * 2]) {
       cycleFound = false;
       continue;
