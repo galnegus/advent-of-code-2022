@@ -83,12 +83,9 @@ for (let rockNo = 0; rockNo < boardRows; ++rockNo) {
   floorsAt[rockNo] = floor;
   jetsUsedAt[rockNo] = jetsUsed;
 
-  const rock = rocks[rockNo % rocks.length];
-  const rockHeight = rockHeights[rockNo % rocks.length];
-
   let rockX = 2;
   let rockY = floor + 4;
-
+  const rock = rocks[rockNo % rocks.length];
   while (true) {
     // Jet movement
     const jet = jetPattern[jetsUsed % jetPattern.length];
@@ -101,7 +98,7 @@ for (let rockNo = 0; rockNo < boardRows; ++rockNo) {
       rockY -= 1;
     } else {
       addToBoard(rock, rockX, rockY);
-      floor = Math.max(rockY + rockHeight - 1, floor);
+      floor = Math.max(rockY + rockHeights[rockNo % rocks.length] - 1, floor);
       break;
     }
   }
@@ -126,9 +123,9 @@ for (let test = rocks.length; test < boardRows; test += rocks.length) {
 function howManyFloors(rocks: bigint): bigint {
   // Start counting cycles only after cycleLength, since I'm not sure where the cycles start,
   // think it's somewhere between cycleLength and cycleLength * 2.
-  const floorsPerCycle = BigInt(floorsAt[cycleLength * 2] - floorsAt[cycleLength * 1]);
+  const floorsPerCycle = BigInt(floorsAt[cycleLength * 2] - floorsAt[cycleLength]);
   return (
-    BigInt(floorsAt[cycleLength * 1 + Number(rocks % BigInt(cycleLength))]) +
+    BigInt(floorsAt[cycleLength + Number(rocks % BigInt(cycleLength))]) +
     BigInt(Math.floor(Number(rocks / BigInt(cycleLength)) - 1)) * floorsPerCycle +
     1n
   );
