@@ -72,28 +72,29 @@ function addToBoard(rock: Rock, x: number, y: number): void {
 
 /**
  * Store how many jets have been used and how many floors there are after placing each rock
- * We'll need these later to find cycles where the same number of jets are used between n rocks being placed 
+ * We'll need these later to find cycles where the same number of jets are used between n rocks being placed
  */
-let totalJets = 0;
 const jetsUsedAt: Array<number> = [];
 const floorsAt: Array<number> = [];
 
 let floor = -1;
-let jetPatternIndex = 0;
+let jetsUsed = 0;
 for (let rockNo = 0; rockNo < boardRows; ++rockNo) {
-  jetsUsedAt[rockNo] = totalJets;
   floorsAt[rockNo] = floor;
+  jetsUsedAt[rockNo] = jetsUsed;
+
   const rock = rocks[rockNo % rocks.length];
   const rockHeight = rockHeights[rockNo % rocks.length];
+
   let rockX = 2;
   let rockY = floor + 4;
+
   while (true) {
     // Jet movement
-    const jet = jetPattern[jetPatternIndex];
-    jetPatternIndex = (jetPatternIndex + 1) % jetPattern.length;
-    totalJets += 1;
+    const jet = jetPattern[jetsUsed % jetPattern.length];
     if (jet === "<" && canMoveTo(rock, rockX - 1, rockY)) rockX -= 1;
     else if (jet === ">" && canMoveTo(rock, rockX + 1, rockY)) rockX += 1;
+    jetsUsed += 1;
 
     // Vertical movement
     if (canMoveTo(rock, rockX, rockY - 1)) {
@@ -106,36 +107,35 @@ for (let rockNo = 0; rockNo < boardRows; ++rockNo) {
   }
 }
 
-let cycleLength = -1;
-for (let test = 5; test < boardRows; test += 5) {
-  let prevCycles = null;
-  let found = true;
-  for (let i = test * 2; i < jetsUsedAt.length; i += test) {
-    const currentCycles = jetsUsedAt[i] - jetsUsedAt[i - test];
-    if (prevCycles !== null && prevCycles !== currentCycles) {
-      found = false;
+let cycleLength = 0;
+// cycle length must be divisble with 5 (the number of rock types), set test accordingly
+for (let test = rocks.length; test < boardRows; test += rocks.length) {
+  let cycleFound = true;
+  for (let i = test * 3; i < jetsUsedAt.length; i += test) {
+    if (jetsUsedAt[i] - jetsUsedAt[i - test] !== jetsUsedAt[i - test] - jetsUsedAt[i - test * 2]) {
+      cycleFound = false;
       continue;
     }
-    prevCycles = currentCycles;
   }
-  if (found) {
+  if (cycleFound) {
     cycleLength = test;
     break;
   }
 }
 
 function howManyFloors(rocks: bigint): bigint {
-  // Start counting cycles only after cycleLength * 2, since I'm not sure where the cycles start,
+  // Start counting cycles only after cycleLength, since I'm not sure where the cycles start,
   // think it's somewhere between cycleLength and cycleLength * 2.
-  const floorsPerCycle = floorsAt[cycleLength * 3] - floorsAt[cycleLength * 2];
+  const floorsPerCycle = BigInt(floorsAt[cycleLength * 2] - floorsAt[cycleLength * 1]);
   return (
-    BigInt(floorsAt[cycleLength * 2 + Number(rocks % BigInt(cycleLength))]) +
-    (BigInt(Math.floor(Number(rocks / BigInt(cycleLength)) - 2)) * BigInt(floorsPerCycle) + 1n)
+    BigInt(floorsAt[cycleLength * 1 + Number(rocks % BigInt(cycleLength))]) +
+    BigInt(Math.floor(Number(rocks / BigInt(cycleLength)) - 1)) * floorsPerCycle +
+    1n
   );
 }
 
 console.log("Part 1 answer:", howManyFloors(2022n).toString());
-console.log("Part 1 answer:", howManyFloors(1000000000000n).toString());
+console.log("Part 2 answer:", howManyFloors(1000000000000n).toString());
 
 console.timeEnd("Execution time");
 export {};
