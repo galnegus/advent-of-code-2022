@@ -4,7 +4,8 @@ console.time("Execution time");
  * This one sucks...
  *
  * Could not figure out what the heck to do, so had to look up some hints 😭
- * Takes about ~4 seconds for part 1+2 on my desktop, would like to get it down to 1s.
+ * 
+ * Just added a bunch of bullshit heuristics until I got under 1 second. 😂
  */
 
 type Resources = [ore: number, clay: number, obsidian: number, geode: number];
@@ -82,7 +83,7 @@ function pay(resources: Resources, blueprint: Blueprint, robotIndex: number): Re
   return result;
 }
 
-const limits: Resources = [4, 8, 8, 32];
+const limits: Resources = [3, 7, 7, 32];
 function shouldCreateRobot(
   blueprint: Blueprint,
   robots: Resources,
@@ -107,8 +108,9 @@ function opt(
   resources: Resources,
   canBuild: BuildFlags
 ): number {
-  if (resources[3] > maxSoFar[minutesLeft]) maxSoFar[minutesLeft] = resources[3];
-  else if (resources[3] < maxSoFar[minutesLeft + 1]) return 0;
+  if (resources[3] < maxSoFar[minutesLeft + 1]) return 0;
+  if (resources[3] > maxSoFar[minutesLeft])
+    maxSoFar[minutesLeft] = resources[3];
   for (let resourceIndex = 0; resourceIndex < 3; ++resourceIndex) {
     if (
       robots[resourceIndex] >= blueprint.maxCost[resourceIndex] &&
@@ -151,7 +153,7 @@ function opt(
       resources[0] >= blueprint.robots[0][0] &&
       shouldCreateRobot(blueprint, robots, resources, 0);
 
-    if (canCreateObsidianRobot) {
+    if (canCreateObsidianRobot && minutesLeft > 3) {
       max = Math.max(
         max,
         opt(
@@ -163,7 +165,7 @@ function opt(
         )
       );
     }
-    if (canCreateClayRobot)
+    if (canCreateClayRobot && minutesLeft > 8)
       max = Math.max(
         max,
         opt(
@@ -174,7 +176,7 @@ function opt(
           trueBuild
         )
       );
-    if (canCreateOreRobot)
+    if (canCreateOreRobot && minutesLeft > 12)
       max = Math.max(
         max,
         opt(
