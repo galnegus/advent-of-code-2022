@@ -10,26 +10,9 @@ const numbers = input.length;
 function mod(n: number, d: number): number {
   return ((n % d) + d) % d;
 }
-
 function getOrder(list: Array<number>): Array<number> {
   return list.map((_, i) => i);
 }
-
-function mix(list: Array<number>, order?: Array<number>): Array<number> {
-  const result = [...list];
-  if (order === undefined) order = getOrder(result);
-  for (let i = 0; i < numbers; ++i) {
-    const pointer = order.findIndex((orderItem) => orderItem === i);
-    let moveTo = pointer + result[pointer];
-    if (moveTo < 0 || moveTo >= numbers) moveTo = mod(moveTo, numbers - 1);
-    const item = result.splice(pointer, 1)[0];
-    result.splice(moveTo, 0, item);
-    const orderItem = order.splice(pointer, 1)[0];
-    order.splice(moveTo, 0, orderItem);
-  }
-  return result;
-}
-
 function coordinates(mixedList: Array<number>): number {
   const zeroIndex = mixedList.findIndex((num) => num === 0);
   return (
@@ -38,8 +21,20 @@ function coordinates(mixedList: Array<number>): number {
     mixedList[mod(zeroIndex + 3000, numbers)]
   );
 }
+function mix(list: Array<number>, order: Array<number>): Array<number> {
+  const result = [...list];
+  for (let i = 0; i < numbers; ++i) {
+    const pointer = order.findIndex((orderItem) => orderItem === i);
+    const item = result.splice(pointer, 1)[0];
+    const orderItem = order.splice(pointer, 1)[0];
+    const moveTo = mod(pointer + result[pointer], numbers - 1);
+    result.splice(moveTo, 0, item);
+    order.splice(moveTo, 0, orderItem);
+  }
+  return result;
+}
 
-console.log("Part 1 answer:", coordinates(mix(input)));
+console.log("Part 1 answer:", coordinates(mix(input, getOrder(input))));
 
 const decryptionKey = 811589153;
 const decryptedInput = input.map((item) => item * decryptionKey);
