@@ -2,9 +2,9 @@ console.time("Execution time");
 
 /**
  * This one sucks...
- * 
+ *
  * Could not figure out what the heck to do, so had to look up some hints 😭
- * Takes about ~10 seconds for part 1+2 on my desktop, would like to get it down to 1s.
+ * Takes about ~4 seconds for part 1+2 on my desktop, would like to get it down to 1s.
  */
 
 type Resources = [ore: number, clay: number, obsidian: number, geode: number];
@@ -109,6 +109,15 @@ function opt(
 ): number {
   if (resources[3] > maxSoFar[minutesLeft]) maxSoFar[minutesLeft] = resources[3];
   else if (resources[3] < maxSoFar[minutesLeft + 1]) return 0;
+  for (let resourceIndex = 0; resourceIndex < 3; ++resourceIndex) {
+    if (
+      robots[resourceIndex] >= blueprint.maxCost[resourceIndex] &&
+      resources[resourceIndex] >= blueprint.maxCost[resourceIndex]
+    ) {
+      resources[resourceIndex] = 100;
+      robots[resourceIndex] = 100;
+    }
+  }
   const memoLookup = checkMemo(minutesLeft, robots, resources);
   if (memoLookup !== null) return memoLookup;
   if (minutesLeft === 0) {
@@ -201,12 +210,14 @@ console.log(
 );
 console.log(
   "Part 2 answer:",
-  blueprints.slice(0, 3).reduce(
-    (product, blueprint) => (
-      reset(), product * opt(blueprint, 32, [1, 0, 0, 0], [0, 0, 0, 0], trueBuild)
-    ),
-    1
-  )
+  blueprints
+    .slice(0, 3)
+    .reduce(
+      (product, blueprint) => (
+        reset(), product * opt(blueprint, 32, [1, 0, 0, 0], [0, 0, 0, 0], trueBuild)
+      ),
+      1
+    )
 );
 
 console.timeEnd("Execution time");
