@@ -89,15 +89,14 @@ for (let round = 0; round < 1000; ++round) {
   const moveDupeChecker = new Map<number, number>();
 
   for (const [row, column] of elves.values()) {
+    if (hasNoPotentialMoves(row, column)) continue;
     for (let moveIndex = round; moveIndex < round + 4; ++moveIndex) {
-      if (hasNoPotentialMoves(row, column)) break;
       const tryMove = potentialMoves[moveIndex % potentialMoves.length](row, column);
-      if (tryMove !== null) {
-        moves.push(tryMove);
-        const position = encodePosition(tryMove[1][0], tryMove[1][1]);
-        moveDupeChecker.set(position, (moveDupeChecker.get(position) ?? 0) + 1);
-        break;
-      }
+      if (tryMove === null) continue;
+      moves.push(tryMove);
+      const position = encodePosition(tryMove[1][0], tryMove[1][1]);
+      moveDupeChecker.set(position, (moveDupeChecker.get(position) ?? 0) + 1);
+      break;
     }
   }
 
