@@ -1,0 +1,129 @@
+console.time("Execution time");
+
+const testInput = false;
+
+const offset = 50;
+const board: Array<Array<boolean>> = new Array(200)
+  .fill(undefined)
+  .map(() => new Array(200).fill(false));
+const elves = new Map<number, Vector>();
+
+const encodeOffset = (1 << 16) / 2;
+function encode(row: number, column: number): number {
+  return ((row + encodeOffset) << 16) | (column + encodeOffset);
+}
+
+function addElf(row: number, column: number): void {
+  board[row + offset][column + offset] = true;
+  elves.set(encode(row, column), [row, column]);
+}
+function removeElf(row: number, column: number): void {
+  board[row + offset][column + offset] = false;
+  elves.delete(encode(row, column));
+}
+function hasElf(row: number, column: number): boolean {
+  return board[row + offset][column + offset];
+}
+
+function hasNoPotentialMoves(row: number, column: number): boolean {
+  return (
+    !hasElf(row - 1, column - 1) &&
+    !hasElf(row - 1, column) &&
+    !hasElf(row - 1, column + 1) &&
+    !hasElf(row, column - 1) &&
+    !hasElf(row, column + 1) &&
+    !hasElf(row + 1, column - 1) &&
+    !hasElf(row + 1, column) &&
+    !hasElf(row + 1, column + 1)
+  );
+}
+
+type Vector = [row: number, column: number];
+type ElfMove = [from: Vector, to: Vector];
+type Move = (row: number, column: number) => ElfMove | null;
+const potentialMoves: Array<Move> = [
+  (row, column) =>
+    !hasElf(row - 1, column - 1) && !hasElf(row - 1, column) && !hasElf(row - 1, column + 1)
+      ? [
+          [row, column],
+          [row - 1, column],
+        ]
+      : null,
+  (row, column) =>
+    !hasElf(row + 1, column - 1) && !hasElf(row + 1, column) && !hasElf(row + 1, column + 1)
+      ? [
+          [row, column],
+          [row + 1, column],
+        ]
+      : null,
+  (row, column) =>
+    !hasElf(row + 1, column - 1) && !hasElf(row, column - 1) && !hasElf(row - 1, column - 1)
+      ? [
+          [row, column],
+          [row, column - 1],
+        ]
+      : null,
+  (row, column) =>
+    !hasElf(row + 1, column + 1) && !hasElf(row, column + 1) && !hasElf(row - 1, column + 1)
+      ? [
+          [row, column],
+          [row, column + 1],
+        ]
+      : null,
+];
+
+const rawInput: string = require("fs").readFileSync(
+  require("path").resolve(__dirname, testInput ? "test" : "input"),
+  "utf-8"
+);
+const input = rawInput.split(/\r?\n/);
+
+for (let row = 0; row < input.length; ++row) {
+  for (let column = 0; column < input[row].length; ++column) {
+    if (input[row][column] === "#") addElf(row, column);
+  }
+}
+
+for (let round = 0; round < 1000; ++round) {
+  const movesResult: Array<ElfMove> = [];
+  const moveDupeChecker = new Map<number, number>();
+
+  for (const [row, column] of elves.values()) {
+    for (let moveIndex = round; moveIndex < round + 4; ++moveIndex) {
+      if (hasNoPotentialMoves(row, column)) break;
+      const tryMove = potentialMoves[moveIndex % potentialMoves.length](row, column);
+      if (tryMove !== null) {
+        movesResult.push(tryMove);
+        const moveHash = encode(tryMove[1][0], tryMove[1][1]);
+        moveDupeChecker.set(moveHash, (moveDupeChecker.get(moveHash) ?? 0) + 1);
+        break;
+      }
+    }
+  }
+
+  for (const move of movesResult) {
+    const moveHash = encode(move[1][0], move[1][1]);
+    if (moveDupeChecker.get(moveHash) === 1) {
+      removeElf(move[0][0], move[0][1]);
+      addElf(move[1][0], move[1][1]);
+    }
+  }
+
+  if (round === 9) {
+    const rows = [...elves.values()].map(([row]) => row);
+    const columns = [...elves.values()].map(([_, column]) => column);
+    let emptyTiles =
+      (Math.max(...rows) - Math.min(...rows) + 1) *
+        (Math.max(...columns) - Math.min(...columns) + 1) -
+      elves.size;
+    console.log("Part 1 answer:", emptyTiles);
+  }
+
+  if (movesResult.length === 0) {
+    console.log("Part 2 answer:", round + 1);
+    break;
+  }
+}
+
+console.timeEnd("Execution time");
+export {};
